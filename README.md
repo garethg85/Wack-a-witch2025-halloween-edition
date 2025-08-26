@@ -19,4 +19,5 @@ Tap spooky balloons to reveal witches, candy, or coins!
 - Plug-and-play HTML file
 
 ## License
+
 MIT — see LICENSE.md
