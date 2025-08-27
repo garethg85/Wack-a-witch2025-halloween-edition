@@ -279,7 +279,7 @@
 
       gameArea.appendChild(balloon);
 
-      // Remove balloon after 2.5 seconds if not clicked for more relaxed gameplay
+      // Remove balloon after 1.2 seconds if not clicked for more relaxed gameplay
       setTimeout(() => balloon.remove(), 5000);
 
       spawnTimeout = setTimeout(spawnLoop, 1600 - Math.min(coins * 10, 1200)); // slower spawn for celebration
@@ -296,3 +296,4 @@
   </script>
 </body>
 </html>
+
