@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -38,15 +38,38 @@
       border-radius: 50%;
       cursor: pointer;
       animation: bounceIn 0.5s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      user-select: none;
+      box-shadow: 0 0 10px #000000aa;
     }
     @keyframes bounceIn {
       0% { transform: scale(0.5); opacity: 0; }
       60% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); }
     }
-    .coin { background: gold; box-shadow: 0 0 10px #ffd700; }
-    .candy { background: pink; box-shadow: 0 0 10px #ff69b4; }
-    .witch { background: purple; box-shadow: 0 0 10px #800080; }
+    .coin {
+      background: gold;
+      box-shadow: 0 0 15px #ffd700;
+      color: #fff8b0;
+      border: 2px solid #fff4a3;
+    }
+    .candy {
+      background: pink;
+      box-shadow: 0 0 15px #ff69b4;
+      color: white;
+      border: 2px solid #ff92c4;
+    }
+    .witch {
+      background: purple;
+      box-shadow: 0 0 12px #800080;
+      color: #fff;
+      font-size: 38px;
+      border: 2px solid #d19ce5;
+      font-weight: bold;
+    }
     #startScreen, #endScreen {
       position: absolute;
       top: 0; left: 0;
@@ -63,6 +86,9 @@
       font-size: 1em;
       width: 100px;
       margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      text-align: center;
     }
     button {
       padding: 10px 20px;
@@ -72,6 +98,16 @@
       background: #ffccff;
       border: none;
       border-radius: 5px;
+      box-shadow: 0 2px 6px #c08bd1;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #e6aee2;
+    }
+    .celebration {
+      position: absolute;
+      pointer-events: none;
+      z-index: 50;
     }
   </style>
 </head>
@@ -108,6 +144,62 @@
     let coins = 0;
     let coinLimit = 0;
     let gameRunning = false;
+    let spawnTimeout;
+    let celebrationTimeout;
+
+    // Emojis for balloon witches
+    const witchFaces = ['🧙‍♀️','🧙','🧙‍♂️','🧙‍♀️'];
+
+    // Helper: random int inclusive
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Celebration particles container
+    const particles = [];
+
+    // Create small candy or coin pieces with confetti around x,y
+    function createCelebration(type, x, y) {
+      const particleCount = 20;
+      for(let i=0; i<particleCount; i++) {
+        const div = document.createElement('div');
+        div.classList.add('celebration');
+        div.style.left = (x + (Math.random()*100 - 50)) + 'px';
+        div.style.top = (y + (Math.random()*100 - 50)) + 'px';
+        div.style.fontSize = randInt(12, 22) + 'px';
+        div.style.opacity = 1;
+        if(type === 'candy') {
+          div.textContent = '🍬';
+          div.style.color = '#ff69b4';
+          div.style.textShadow = '0 0 6px #ff92c4';
+        } else if(type === 'coin') {
+          div.textContent = '🪙';
+          div.style.color = '#FFD700';
+          div.style.textShadow = '0 0 8px #DAA520';
+        } else {
+          div.textContent = '✨';
+          div.style.color = '#fff';
+        }
+        document.body.appendChild(div);
+
+        // Animate upward fade and move for ~1.5s then remove
+        let start = null;
+        function animate(timestamp) {
+          if (!start) start = timestamp;
+          const progress = timestamp - start;
+          const fraction = progress/1500;
+          if(fraction > 1){
+            div.remove();
+            return;
+          }
+          div.style.top = (y - (fraction*100) + (Math.random()*30 - 15)) + 'px';
+          div.style.opacity = 1 - fraction;
+          div.style.left = (x + (Math.sin(fraction * 10 + i) * 20)) + 'px';
+          requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+      }
+    }
 
     function startGame() {
       coinLimit = parseInt(coinLimitInput.value) || 0;
@@ -115,6 +207,9 @@
       coinLimitDisplay.textContent = coinLimit;
       startScreen.style.display = 'none';
       gameRunning = true;
+      candy = 0; coins = 0;
+      candyCount.textContent = candy;
+      coinCount.textContent = coins;
       spawnLoop();
     }
 
@@ -125,6 +220,10 @@
       coinCount.textContent = coins;
       endScreen.style.display = 'none';
       startScreen.style.display = 'flex';
+      gameArea.innerHTML = '';
+      clearTimeout(spawnTimeout);
+      clearTimeout(celebrationTimeout);
+      gameRunning = false;
     }
 
     function spawnLoop() {
@@ -135,26 +234,43 @@
         return;
       }
 
+      // Delay next spawn for celebration if present
+      if(celebrationTimeout) {
+        spawnTimeout = setTimeout(spawnLoop, 1500);
+        return;
+      }
+
       const balloon = document.createElement('div');
       balloon.classList.add('balloon');
 
-      const type = Math.random();
-      if (type < 0.4) {
+      const typeRand = Math.random();
+      if (typeRand < 0.4) {
         balloon.classList.add('witch');
+        balloon.textContent = witchFaces[randInt(0, witchFaces.length-1)];
         balloon.onclick = () => balloon.remove();
-      } else if (type < 0.7) {
+      } else if (typeRand < 0.7) {
         balloon.classList.add('candy');
+        balloon.textContent = '🍬';
         balloon.onclick = () => {
           candy++;
           candyCount.textContent = candy;
           balloon.remove();
+          createCelebration('candy',
+            balloon.getBoundingClientRect().left + 40,
+            balloon.getBoundingClientRect().top + 40);
+          holdCelebration();
         };
       } else {
         balloon.classList.add('coin');
+        balloon.textContent = '🪙';
         balloon.onclick = () => {
           coins++;
           coinCount.textContent = coins;
           balloon.remove();
+          createCelebration('coin',
+            balloon.getBoundingClientRect().left + 40,
+            balloon.getBoundingClientRect().top + 40);
+          holdCelebration();
         };
       }
 
@@ -162,11 +278,21 @@
       balloon.style.top = Math.random() * (window.innerHeight * 0.8 - 80) + 'px';
 
       gameArea.appendChild(balloon);
-      setTimeout(() => balloon.remove(), 3000);
 
-      setTimeout(spawnLoop, 800 - Math.min(coins * 5, 600)); // speed up over time
+      // Remove balloon after 2.5 seconds if not clicked for more relaxed gameplay
+      setTimeout(() => balloon.remove(), 5000);
+
+      spawnTimeout = setTimeout(spawnLoop, 1600 - Math.min(coins * 10, 1200)); // slower spawn for celebration
+    }
+
+    function holdCelebration() {
+      // Prevent spawning new balloons during celebration (~1.5s)
+      clearTimeout(spawnTimeout);
+      celebrationTimeout = setTimeout(() => {
+        celebrationTimeout = null;
+        spawnLoop();
+      }, 1500);
     }
   </script>
 </body>
-
 </html>
